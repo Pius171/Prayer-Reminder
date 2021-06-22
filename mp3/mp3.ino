@@ -17,7 +17,8 @@ SoftwareSerial mySerial(10, 11);
 //pins
 const int BUSY = 3;
 const int PLAYorPAUSE = 2;
-String  State = "play";
+
+// Variables
 String Time="";
 String CurrentSong="";
 boolean isPlaying = false;
@@ -37,7 +38,7 @@ void setup () {
     Serial.println("RTC is NOT running, let's set the time!");
     // When time needs to be set on a new device, or after a power loss, the
     // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     // This line sets the RTC with an explicit date & time, for example to set
     // January 21, 2014 at 3am you would call:
     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
@@ -45,15 +46,17 @@ void setup () {
 
   // When time needs to be re-set on a previously configured device, the
   // following line sets the RTC to the date & time this sketch was compiled
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+ //  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   // This line sets the RTC with an explicit date & time, for example to set
   // January 21, 2014 at 3am you would call:
   // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
 
 
  pinMode(BUSY,INPUT);
+ pinMode(PLAYorPAUSE,INPUT_PULLUP);
 setVolume(30);
 delay(1000);
+Regina();
 
 }
 
@@ -77,19 +80,30 @@ void loop () {
    char buf1[] = "hh:mm";
    Time= now.toString(buf1);
    Serial.println(now.toString(buf1));
+   Serial.println(now.toString());
 
    if((Time=="23:28" || Time=="12:00" || Time == "06:00" || Time == "18:00") && digitalRead(BUSY) == 1){
     Regina();
     CurrentSong="Regina";
    }
 
-   if(digitalRead(PLAYorPAUSE)==LOW && State == "play" ){
+   if(digitalRead(PLAYorPAUSE)==LOW && digitalRead(BUSY) == 0){
     pause();
    }
 
-   if(digitalRead(PLAYorPAUSE)==LOW && State == "pause"){
+    if(digitalRead(PLAYorPAUSE)==LOW && digitalRead(BUSY) == 1){
     play();
    }
+
+//   if(digitalRead(PLAYorPAUSE)==LOW && State == "play" ){
+//    pause();
+//    delay(500);
+//   }
+//
+//   if(digitalRead(PLAYorPAUSE)==LOW && State == "pause"){
+//    play();
+//    delay(500);
+//   }
 
 //DateTime FiveMins = now+ TimeSpan(0,0,5,0);
 //Time = FiveMins.toString(buf1);
@@ -150,14 +164,14 @@ void pause()
 {
   execute_CMD(0x0E,0,0);
   delay(500);
-  State= "pause";
+  Serial.println("paused");
 }
 
 void play()
 {
   execute_CMD(0x0D,0,1); 
   delay(500);
-  State= "play";
+  Serial.println("playing");
 }
 
 void playNext()
