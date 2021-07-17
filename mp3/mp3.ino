@@ -1,6 +1,3 @@
-///              MP3 PLAYER PROJECT
-/// http://educ8s.tv/arduino-mp3-player/
-//////////////////////////////////////////
 
 
 #include "SoftwareSerial.h"
@@ -16,7 +13,7 @@ SoftwareSerial mySerial(10, 11);
 
 //pins
 const int BUSY = 3;
-const int PLAYorPAUSE = 2;
+const int PLAYorPAUSE = 8;
 const int snooze_button = 4;
 
 // Variables
@@ -25,12 +22,14 @@ String _Day = "";
 String CurrentSong = "";
 String Snooze_time = "";
 
+bool AngelFlag= true; // flag for angelus and divine mercy
+bool DivineMercyFlag= true; // flag for Divine mercy
 
-RTC_DS3231 rtc;
+RTC_DS1307 rtc;
 
 // function to add 5 mins when snooze button is pressed
 String Snooze(String TIME) {
-  const int snooze_amount = 5;
+  const int snooze_amount = 5;// amount of minutes to snooze alarm
   const int max_min = 60;
   int Hr = Time.substring(0, 2).toInt();
   int Sc = Time.substring(3, 5).toInt();
@@ -54,11 +53,16 @@ String Snooze(String TIME) {
     Sc = Sc + snooze_amount; 
   }
   // add leading zero if Seconds is less than 10
-  String b = String(Sc);
-  if (Sc < 10) {
-    b = "0" + String(Sc);
-  }
-  return String(Hr) + ":" + b; // returns time plus 5mins
+  String b = (Sc < 10) ? "0"+String(Sc) : Sc;
+  String c = (Hr < 10) ? "0"+String(Hr) : Hr;
+//  if (Sc < 10) {
+//    b = "0" + String(Sc);
+//  }
+//
+//  if (Hr < 10){
+//     
+//  }
+  return c + ":" + b; // returns time plus 5mins
 }
 
 void setup () {
@@ -70,7 +74,7 @@ void setup () {
     abort();
   }
 
-  if (! rtc.lostPower()) {
+  if (! rtc.isrunning()) {
     Serial.println("RTC is NOT running, let's set the time!");
     // When time needs to be set on a new device, or after a power loss, the
     // following line sets the RTC to the date & time this sketch was compiled
@@ -91,15 +95,18 @@ void setup () {
   pinMode(BUSY, INPUT);
   pinMode(PLAYorPAUSE, INPUT_PULLUP);
   pinMode(snooze_button, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP); // isEaster pin
   setVolume(30);
-  delay(1000);
-  Regina();
-
+  //delay(1000);
+  //Regina();
+pause();
 }
 
 
 
 void loop () {
+  bool isEaster= digitalRead(5);
+  Serial.println((isEaster) ? "Easter" : "not Easter");
 
   DateTime now = rtc.now();
 
@@ -120,12 +127,35 @@ void loop () {
   _Day = now.toString(buf2);
   Serial.println(_Day + " " + Time);
 
+bool AngelusReginaTime=(Time == "00:00" || Time == "12:00" || Time == "06:00" || Time == "18:00");
 
-  if ((Time == "23:28" || Time == "12:00" || Time == "06:00" || Time == "18:00") && digitalRead(BUSY) == 1) {
-    Regina();
+  if (AngelusReginaTime && digitalRead(BUSY) == 1 && AngelFlag) {
+    AngelFlag=false; //  now the next time the loop runs the if statement above will not be valid, this will stop the audio
+                     //    from playing again. I noticed that when i press pause while divine mercy is till playing it automatically
+                     //    plays again , this is where the flag comes in
+    if(isEaster){
+      Regina();
 
+    }
+    else{
+      Angelus();
+    }
   }
 
+  else if(!AngelusReginaTime){ // if it is not yet time for angelus or regina
+     AngelFlag= true;
+  }
+  
+   bool DivineMercyTime = (Time == "03:00" || Time == "15:00");
+ if ( DivineMercyTime && digitalRead(BUSY) == 1 && DivineMercyFlag) {
+  DivineMercyFlag= false;
+  DivineMercy();
+ }
+
+ else if(!DivineMercyTime){
+  DivineMercyFlag=true;
+ }
+ 
   if (digitalRead(PLAYorPAUSE) == LOW && digitalRead(BUSY) == 0) {
     pause();
   }
@@ -256,17 +286,17 @@ void play()
   Snooze_time = "#";
 }
 
-void playNext()
-{
-  execute_CMD(0x01, 0, 1);
-  delay(500);
-}
-
-void playPrevious()
-{
-  execute_CMD(0x02, 0, 1);
-  delay(500);
-}
+//void playNext()
+//{
+//  execute_CMD(0x01, 0, 1);
+//  delay(500);
+//}
+//
+//void playPrevious()
+//{
+//  execute_CMD(0x02, 0, 1);
+//  delay(500);
+//}
 
 void setVolume(int volume)
 {
